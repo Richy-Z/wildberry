@@ -1,19 +1,19 @@
 local mnemonics = {
-    HLT = 0, -- stop
-    ADD = 1, -- add contents of x to accumulator
-    SUB = 2, -- subtract contents of x from accumulator
+    HLT = 000, -- stop
+    ADD = 100, -- add contents of x to accumulator
+    SUB = 200, -- subtract contents of x from accumulator
 
-    STA = 3, -- store accumulator val in mem x
-    STO = 3,
+    STA = 300, -- store accumulator val in mem x
+    STO = 300,
 
-    LDA = 5, -- store contents of x in accumulator
-    -- BRA = 6, -- branching is not implemented for now
-    -- BRZ = 7,
-    -- BRP = 8,
+    LDA = 500, -- store contents of x in accumulator
+    -- BRA = 600, -- branching is not implemented for now
+    -- BRZ = 700,
+    -- BRP = 800,
 
-    INP = 9.01,
-    OUT = 9.02,
-    OTC = 9.22,
+    INP = 901, -- request input into accumulator
+    OUT = 902, -- output accumulator value as number
+    OTC = 922, -- output accumulator value as ascii character
 }
 
 local fs = require("fs")
@@ -22,7 +22,9 @@ require("string-extensions")
 local fmt = string.format
 local function pf(...) p(fmt(...)) end
 
-local src = fs.readFileSync("main.fmc")
+local src = fs.readFileSync("main.lmc")
+if not src then error("main.lmc file not found") end
+
 src = string.split(src:gsub("\r\n", "\n"), "\n")
 
 local function zero(x)
@@ -31,17 +33,21 @@ end
 
 local instructions = {}
 for _, line in pairs(src) do
+    if string.startswith(line, "//") then goto continue end
+
     local a = string.split(line, " ")
-    local mnemonic = a[1]
+    local shorthand = a[1]
     local operand = a[2]
 
     if operand and not tonumber(operand) then error(fmt("Operand on line %s should be a number", _)) end
 
     table.insert(instructions, {
-        literal = mnemonic,
-        opcode = (mnemonics[mnemonic] * 100),
+        literal = shorthand,
+        opcode = mnemonics[shorthand],
         operand = zero(tonumber(operand))
     })
+
+    ::continue::
 end
 
 p(instructions)
@@ -74,6 +80,7 @@ local function step()
         print()
         print()
         printSnapshot("HALT")
+        p(mem)
         os.exit(0)
     end
 
