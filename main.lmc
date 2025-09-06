@@ -1,0 +1,6 @@
+INP
+STA 46
+INP
+ADD 46
+OUT
+OTC
