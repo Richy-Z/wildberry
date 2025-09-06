@@ -73,6 +73,21 @@ local function printSnapshot(...)
     print(fmt("PC: %s ; ACCUMULATOR: %s ; INSTRUCTION: %s", pcounter, accumulator, fmt(...)))
 end
 
+-- synchronous wrapper for io input because luvit is weird with input
+local function input(prompt)
+    local co = coroutine.running()
+
+    process.stdout:write(prompt or "")
+    process.stdin:resume()
+    process.stdin:once("data", function(line)
+        process.stdin:pause()
+        local n = tonumber(line) or 0
+        coroutine.resume(co, n % 1000)
+    end)
+
+    return coroutine.yield()
+end
+
 local function step()
     pcounter = pcounter + 1
     local i = mem[pcounter]
@@ -80,7 +95,7 @@ local function step()
         print()
         print()
         printSnapshot("HALT")
-        p(mem)
+        p(pcounter, accumulator, mem)
         os.exit(0)
     end
 
@@ -102,16 +117,13 @@ local function step()
     elseif opcode == 9 then
         if address == 1 then
             printSnapshot("accumulator = requested input")
-            -- TODO
-            local random = math.random(1, 60)
-            p("UNIMPLEMENTED opcode 901: generated random input", random)
-            accumulator = random
+            accumulator = input("[INP] enter 0..999: ")
         elseif address == 2 then
             printSnapshot("output accumulator as num")
-            print("OUTPUT:", accumulator)
+            p(accumulator)
         elseif address == 22 then
             printSnapshot("output accumulator as ascii char")
-            print("OUTPUT:", string.char(accumulator))
+            p(string.char(accumulator))
         end
     end
 
